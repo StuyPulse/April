@@ -1,7 +1,10 @@
 package com.stuypulse.robot.subsystems;
 
+import java.util.Optional;
+
 import com.kauailabs.navx.frc.AHRS;
 import com.stuypulse.robot.constants.Settings;
+import com.stuypulse.robot.util.AprilTagData;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator;
@@ -77,18 +80,12 @@ public class DifferentialDrive extends SubsystemBase {
 
     /** ODOMETRY API */
 
-    private static final Pose2d kNoPose = new Pose2d(Double.NaN, Double.NaN, new Rotation2d(Double.NaN));
-    private Pose2d visionData = kNoPose;
-
 
     private void updatePose() {
-
-        if (camera.hasRobotPose()) {
-            Pose2d pose = camera.getRobotPose();
-            visionData = pose;
-            poseEstimator.addVisionMeasurement(pose, Timer.getFPGATimestamp() - camera.getLatency());
-        } else {
-            visionData = kNoPose;
+        Optional<AprilTagData> pose = camera.getPoseData();
+        if (pose.isPresent()) {
+            AprilTagData poseData = pose.get();
+            poseEstimator.addVisionMeasurement(poseData.pose, Timer.getFPGATimestamp() - poseData.latency);
         }
         poseEstimator.update(getGyroAngle(), leftEncoder.getDistance(), rightEncoder.getDistance());
     }
@@ -111,7 +108,7 @@ public class DifferentialDrive extends SubsystemBase {
         updatePose();
 
         field.getObject("pose estimator").setPose(getPose());
-        cameraField.getObject("vision data").setPose(visionData);
+        cameraField.getObject("vision data").setPose(camera.getPoseData().get().pose);
 
         SmartDashboard.putNumber("DifferentialDrive/Pose Estimator X", getPose().getTranslation().getX());
         SmartDashboard.putNumber("DifferentialDrive/Pose Estimator Y", getPose().getTranslation().getY());

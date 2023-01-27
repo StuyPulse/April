@@ -1,66 +1,54 @@
 package com.stuypulse.robot.subsystems;
 
-import com.stuypulse.robot.constants.Settings;
-import com.stuypulse.stuylib.math.Angle;
-import com.stuypulse.stuylib.network.limelight.Limelight;
+import java.util.Optional;
 
-import edu.wpi.first.cameraserver.CameraServer;
+import com.stuypulse.robot.util.AprilTagData;
+
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.networktables.DoubleArrayEntry;
 import edu.wpi.first.networktables.DoubleEntry;
+import edu.wpi.first.networktables.IntegerEntry;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.FieldObject2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-/* todo: make ICamera, SimCamera */
-public class Camera extends SubsystemBase {
+public class Camera {
+    
+    private static double kCaptureDelayMs = 11.0;
 
-	private double[] botposeData;
+    private String tableName;
 
-	private DoubleEntry latencyEntry;
-	private DoubleArrayEntry botposeEntry;
+    private final DoubleArrayEntry botposeEntry;
+    private final DoubleEntry latencyEntry;
+    private final IntegerEntry idEntry;
 
-	public Camera() {
-		final String name = "limelight-back";
-		final NetworkTable limelight = 
-			NetworkTableInstance.getDefault().getTable(name);
+    public Camera(String tableName) {
+        this.tableName = tableName;
 
-		botposeData = new double[] {};
+        NetworkTable limelight = NetworkTableInstance.getDefault().getTable(tableName);
 
-		latencyEntry = 
-			limelight.getDoubleTopic("tl").getEntry(0.0);
-		botposeEntry = 
-			limelight.getDoubleArrayTopic("botpose").getEntry(botposeData);
-
-		for (int port : Settings.Limelight.PORTS) {
-            PortForwarder.add(port, name + ".local", port);
-        }
-	}
-
-	public double getLatency() {
-		final double limelightCaptureDelay = 11.0;
-		return 
-			Units.millisecondsToSeconds(latencyEntry.get() + limelightCaptureDelay);
-	}
-
-    public boolean hasRobotPose() {
-        return botposeData != null && botposeData.length == 6;
+        latencyEntry = limelight.getDoubleTopic("tl").getEntry(0);
+        botposeEntry = limelight.getDoubleArrayTopic("botpose").getEntry(new double[] {});
+        idEntry = limelight.getIntegerTopic("tid").getEntry(0);
     }
 
-	public Pose2d getRobotPose() {
-		return new Pose2d(botposeData[0], botposeData[1], Rotation2d.fromDegrees(botposeData[5]));
-	}
+    public String getTableName() {
+        return tableName;
+    }
 
-	@Override
-	public void periodic() {
-		botposeData = botposeEntry.get();
-	}
+    public Optional<AprilTagData> getPoseData() {
+        double[] botposeData = botposeEntry.get();
+        
+        if (botposeData.length != 6) {
+            return Optional.empty();
+        }
+
+        Pose2d botpose = new Pose2d(botposeData[0], botposeData[1], Rotation2d.fromDegrees(botposeData[5]));
+        double latency = Units.millisecondsToSeconds(latencyEntry.get() + kCaptureDelayMs);
+        int id = (int) idEntry.get();
+        
+        return Optional.of(new AprilTagData(botpose, latency, id));
+    }
 
 }

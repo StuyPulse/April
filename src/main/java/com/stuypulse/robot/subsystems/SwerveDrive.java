@@ -1,10 +1,12 @@
 package com.stuypulse.robot.subsystems;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import com.kauailabs.navx.frc.AHRS;
 import com.stuypulse.robot.constants.Settings;
+import com.stuypulse.robot.util.AprilTagData;
 import com.stuypulse.stuylib.math.Vector2D;
 import com.stuypulse.stuylib.network.SmartAngle;
 
@@ -164,13 +166,10 @@ public class SwerveDrive extends SubsystemBase {
 
 
     private void updatePose() {
-
-        if (camera.hasRobotPose()) {
-            Pose2d pose = camera.getRobotPose();
-            visionData = pose;
-            poseEstimator.addVisionMeasurement(pose, Timer.getFPGATimestamp() - camera.getLatency());
-        } else {
-            visionData = kNoPose;
+        Optional<AprilTagData> pose = camera.getPoseData();
+        if (pose.isPresent()) {
+            AprilTagData poseData = pose.get();
+            poseEstimator.addVisionMeasurement(poseData.pose, Timer.getFPGATimestamp() - poseData.latency);
         }
         poseEstimator.update(getGyroAngle(), getModulePositions());
     }
