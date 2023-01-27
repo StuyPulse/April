@@ -16,15 +16,13 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 public class Camera {
     
     private static double kCaptureDelayMs = 11.0;
-
-    private String tableName;
+    private static String tableName = "limelight";
 
     private final DoubleArrayEntry botposeEntry;
     private final DoubleEntry latencyEntry;
     private final IntegerEntry idEntry;
 
-    public Camera(String tableName) {
-        this.tableName = tableName;
+    public Camera() {
 
         NetworkTable limelight = NetworkTableInstance.getDefault().getTable(tableName);
 

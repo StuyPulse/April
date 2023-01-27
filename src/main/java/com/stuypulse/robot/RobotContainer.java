@@ -23,7 +23,7 @@ public class RobotContainer {
     
     // Subsystem
 
-    public final Camera camera = new Camera("limelight");
+    public final Camera camera = new Camera();
 
     // Autons
     private static SendableChooser<Command> autonChooser = new SendableChooser<>();
